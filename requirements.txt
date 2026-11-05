@@ -1,3 +1,6 @@
 flask
 feedparser
 requests
+yfinance
+pandas
+gunicorn
