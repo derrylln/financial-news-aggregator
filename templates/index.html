@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="{{ lang or 'en' }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarketFeed</title>
+<style>
+  :root{
+    --black:#000; --text:#111; --muted:#767676; --light:#d8d8d8;
+    --blue:#0058cc; --red:#c8102e; --bg:#fff; --hover:#f6f6f6;
+    --serif: Georgia, 'Times New Roman', Times, serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:var(--sans);font-size:14px;line-height:1.4;
+    -webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  a:hover{color:var(--blue)}
+  img{display:block;max-width:100%}
+
+  /* ============ TICKER ============ */
+  .ticker-bar{
+    background:var(--black); color:#fff; display:flex; align-items:center;
+    height:32px; overflow:hidden; font-size:11px; letter-spacing:.4px;
+  }
+  .ticker-label{
+    background:var(--red); height:100%; padding:0 14px; font-weight:700;
+    display:flex; align-items:center; font-size:10px; letter-spacing:1.5px;
+    flex-shrink:0; text-transform:uppercase;
+  }
+  .ticker-track{
+    display:flex; white-space:nowrap; padding-left:20px;
+    animation:scroll 70s linear infinite;
+  }
+  .ticker-track:hover{animation-play-state:paused}
+  .tick{display:inline-flex; gap:6px; margin-right:34px; align-items:baseline}
+  .tick b{color:#ff5a5f; font-weight:700}
+  .tick .price { color: #fff; font-weight: 400; margin-right: 4px; }
+  .tick b.up { color: #22c55e; }   /* Green for positive */
+  .tick b.down { color: #ef4444; } /* Red for negative */
+  @keyframes scroll{
+    from{transform:translateX(0)} to{transform:translateX(-50%)}
+  }
+
+  /* ============ MASTHEAD ============ */
+  .masthead{background:#fff; border-bottom:1px solid var(--black);
+    padding:20px 24px 0}
+  .masthead-inner{
+    max-width:1280px; margin:0 auto;
+    display:flex; justify-content:space-between; align-items:flex-end;
+    padding-bottom:14px; gap:16px; flex-wrap:wrap;
+  }
+  .brand{font-family:var(--serif); font-size:40px; font-weight:900;
+    letter-spacing:-1.5px; line-height:1; color:var(--black)}
+  .brand span{color:var(--red)}
+  .brand-tag{font-size:11px; color:var(--muted); margin-top:6px;
+    text-transform:uppercase; letter-spacing:1.5px}
+  .masthead-actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .masthead-actions form{display:contents}
+  .btn{background:var(--black); color:#fff; border:none; padding:9px 16px;
+    font-size:11px; font-weight:700; letter-spacing:1px;
+    text-transform:uppercase; cursor:pointer; font-family:var(--sans);
+    transition:.15s}
+  .btn:hover{background:var(--red)}
+  .btn.secondary{background:#fff; color:var(--black); border:1px solid var(--black)}
+  .btn.secondary:hover{background:var(--black); color:#fff}
+  .stats-mini{display:flex; gap:16px; font-size:11px; color:var(--muted);
+    margin-right:8px; align-items:center}
+  .stats-mini b{color:var(--black); font-weight:700}
+  .lang-toggle{background:#fff; color:var(--black); border:1px solid var(--black);
+    font-size:11px; font-weight:800; padding:9px 12px; letter-spacing:1px;
+    cursor:pointer; text-transform:uppercase; transition:.15s}
+  .lang-toggle:hover{background:var(--red); border-color:var(--red); color:#fff}
+
+  /* ============ FILTER NAV ============ */
+  .filter-nav{background:#fff; border-bottom:1px solid var(--light);
+    position:sticky; top:0; z-index:50}
+  .filter-inner{max-width:1280px; margin:0 auto; padding:0 24px;
+    display:flex; align-items:center; gap:2px; overflow-x:auto;
+    scrollbar-width:none}
+  .filter-inner::-webkit-scrollbar{display:none}
+  .filter-inner a{padding:14px 12px 12px; font-size:12px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.8px; white-space:nowrap;
+    border-bottom:3px solid transparent; color:var(--muted); transition:.15s}
+  .filter-inner a:hover{color:var(--black)}
+  .filter-inner a.active{color:var(--black); border-bottom-color:var(--black)}
+  .filter-divider{width:1px; height:22px; background:var(--light);
+    margin:0 8px; flex-shrink:0}
+  .filter-lang{padding:14px 10px 12px; font-size:11px; font-weight:700;
+    color:var(--muted); border-bottom:3px solid transparent;
+    white-space:nowrap; letter-spacing:.5px}
+  .filter-lang.active{color:var(--black); border-bottom-color:var(--black)}
+  .filter-search{margin-left:auto; display:flex; padding:8px 0; flex-shrink:0}
+  .filter-search input{padding:7px 12px; border:1px solid var(--light);
+    font-size:12px; font-family:var(--sans); width:200px; outline:none}
+  .filter-search input:focus{border-color:var(--black)}
+  .filter-search button{background:var(--black); color:#fff; border:none;
+    padding:0 14px; font-size:11px; font-weight:700; letter-spacing:1px;
+    cursor:pointer; transition:.15s}
+  .filter-search button:hover{background:var(--red)}
+
+  /* ============ MAIN ============ */
+  main{max-width:1280px; margin:0 auto; padding:24px}
+
+  /* ============ HERO ============ */
+  .hero{display:grid; grid-template-columns:2fr 1fr; gap:24px;
+    padding-bottom:24px; margin-bottom:24px; border-bottom:1px solid var(--light)}
+  .hero-main{cursor:pointer}
+  .hero-main .thumb{aspect-ratio:16/9; margin-bottom:16px}
+  .hero-main h1{font-family:var(--serif); font-size:38px; line-height:1.15;
+    font-weight:900; margin:0 0 12px; letter-spacing:-.5px}
+  .hero-main p{color:var(--muted); font-size:16px; line-height:1.5;
+    margin:0 0 14px; font-family:var(--sans)}
+  .hero-side{display:flex; flex-direction:column; gap:20px}
+  .side-card{padding-bottom:20px; border-bottom:1px solid var(--light);
+    cursor:pointer}
+  .side-card:last-child{border-bottom:none; padding-bottom:0}
+  .side-card .thumb{aspect-ratio:16/9; margin-bottom:10px}
+  .side-card h3{font-family:var(--serif); font-size:20px; line-height:1.25;
+    margin:6px 0 8px; font-weight:700}
+  .side-card:hover h3{color:var(--blue)}
+
+  /* ============ THUMBNAIL ============ */
+  .thumb{position:relative; background:var(--light); overflow:hidden;
+    display:block}
+  .thumb .thumb-fallback{position:absolute; inset:0; display:flex;
+    align-items:center; justify-content:center; color:#fff; font-weight:800;
+    font-size:11px; text-transform:uppercase; letter-spacing:1.2px;
+    text-align:center; padding:12px; line-height:1.3}
+  .thumb img{position:relative; width:100%; height:100%; object-fit:cover;
+    transition:transform .4s}
+  .thumb:hover img{transform:scale(1.03)}
+
+  /* ============ SECTION ============ */
+  .section-head{display:flex; justify-content:space-between; align-items:baseline;
+    padding-bottom:10px; border-bottom:2px solid var(--black); margin-bottom:20px}
+  .section-head h2{font-family:var(--sans); font-size:13px; font-weight:800;
+    letter-spacing:2px; text-transform:uppercase; margin:0}
+  .section-head span{font-size:11px; color:var(--muted); letter-spacing:1px}
+
+  /* ============ GRID ============ */
+  .grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:28px 24px}
+  .card{cursor:pointer}
+  .card .thumb{aspect-ratio:16/9; margin-bottom:10px}
+  .card-cat{font-size:10px; font-weight:700; letter-spacing:1.2px;
+    text-transform:uppercase; color:var(--red); margin-bottom:6px}
+  .card h3{font-family:var(--serif); font-size:20px; line-height:1.28;
+    margin:0 0 8px; font-weight:700}
+  .card:hover h3{color:var(--blue)}
+  .card p{font-size:13px; color:var(--muted); line-height:1.5; margin:0 0 8px;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    overflow:hidden}
+
+  /* ============ META ============ */
+  .meta{display:flex; gap:8px; font-size:11px; color:var(--muted);
+    align-items:center; flex-wrap:wrap}
+  .meta .src{color:var(--black); font-weight:700; letter-spacing:.3px}
+  .meta .dot{color:var(--light)}
+
+  /* ============ TAGS ============ */
+  .tags{margin-top:8px; display:flex; flex-wrap:wrap; gap:4px}
+  .tag{font-size:10px; padding:2px 7px; font-weight:700;
+    letter-spacing:.4px; text-transform:uppercase; display:inline-block}
+  .tag.match{background:#fff3cd; color:#8a6d1a}
+  .tag.id{background:#fff; border:1px solid var(--light); color:var(--muted)}
+  .tag.translate{background:#eef2ff; color:#4338ca; cursor:pointer;
+    border:1px solid #c7d2fe}
+  .tag.translate:hover{background:#4338ca; color:#fff; border-color:#4338ca}
+
+  /* ============ READ ============ */
+  .read{opacity:.5}
+  .read:hover{opacity:.8}
+
+  /* ============ EMPTY / FOOTER ============ */
+  .empty{text-align:center; padding:80px 20px; color:var(--muted);
+    font-family:var(--serif); font-size:20px}
+  .empty .btn{margin-top:20px; font-family:var(--sans); font-size:11px}
+  footer{max-width:1280px; margin:40px auto 0; padding:20px 24px;
+    border-top:1px solid var(--light); color:var(--muted); font-size:11px;
+    letter-spacing:.5px; display:flex; justify-content:space-between;
+    flex-wrap:wrap; gap:10px}
+
+  /* ============ RESPONSIVE ============ */
+  @media(max-width:960px){
+    .hero{grid-template-columns:1fr; gap:20px}
+    .hero-side{flex-direction:row; gap:16px}
+    .side-card{flex:1; padding-bottom:0; border-bottom:none}
+    .grid{grid-template-columns:repeat(2, 1fr)}
+    .hero-main h1{font-size:30px}
+    .brand{font-size:32px}
+  }
+  @media(max-width:640px){
+    main{padding:16px}
+    .masthead{padding:14px 16px 0}
+    .masthead-inner{flex-direction:column; align-items:flex-start;
+      padding-bottom:12px}
+    .hero-side{flex-direction:column}
+    .grid{grid-template-columns:1fr; gap:22px}
+    .hero-main h1{font-size:24px}
+    .filter-inner{padding:0 16px}
+    .filter-search input{width:120px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============= TICKER BAR ============= -->
+{% if ticker_prices %}
+<div class="ticker-bar">
+  <div class="ticker-label">{{ t('watchlist') }}</div>
+  <div class="ticker-track">
+    {% for _ in range(2) %}
+      {% for name, data in ticker_prices.items() %}
+        {% if data.price %}
+        <span class="tick">
+          {{ name }} 
+          <span class="price">{{ "{:,.2f}".format(data.price) }}</span>
+          <b class="{{ 'up' if data.change > 0 else ('down' if data.change < 0 else '') }}">
+            {{ '+' if data.change > 0 else '' }}{{ data.change }}%
+          </b>
+        </span>
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div>
+      <div class="brand">Market<span>Feed</span></div>
+      <div class="brand-tag">{{ t('brand_tag') }}</div>
+    </div>
+    <div class="masthead-actions">
+      <div class="stats-mini">
+        <span><b>{{ stats.total }}</b> {{ t('articles') }}</span>
+        <span><b>{{ stats.unread }}</b> {{ t('unread') }}</span>
+      </div>
+      <a href="{{ url_for('set_lang', lang=other_lang) }}"
+         class="lang-toggle" title="{{ t('lang_toggle_title') }}">
+        {{ t('lang_toggle') }}
+      </a>
+      <form method="post" action="{{ url_for('refresh') }}">
+        <button class="btn" type="submit">{{ t('refresh') }}</button>
+      </form>
+      <form method="post" action="{{ url_for('route_mark_all_read') }}">
+        <button class="btn secondary" type="submit">{{ t('mark_all_read') }}</button>
+      </form>
+    </div>
+  </div>
+</header>
+
+<nav class="filter-nav">
+  <div class="filter-inner">
+    <a href="{{ url_for('index', clang=current.clang) }}"
+       class="{% if not current.category and not current.unread %}active{% endif %}">{{ t('all') }}</a>
+    <a href="{{ url_for('index', unread='1', clang=current.clang) }}"
+       class="{% if current.unread %}active{% endif %}">{{ t('unread') }}</a>
+    {% for c in categories %}
+      <a href="{{ url_for('index', category=c, clang=current.clang) }}"
+         class="{% if current.category == c %}active{% endif %}">{{ translate_category(c) }}</a>
+    {% endfor %}
+
+    <span class="filter-divider"></span>
+    <a href="{{ url_for('index', category=current.category, unread=('1' if current.unread else None), q=current.q) }}"
+       class="filter-lang {% if not current.clang %}active{% endif %}">
+      🌐 {{ t('content_lang') }}
+    </a>
+    <a href="{{ url_for('index', category=current.category, unread=('1' if current.unread else None), q=current.q, clang='en') }}"
+       class="filter-lang {% if current.clang == 'en' %}active{% endif %}">EN</a>
+    <a href="{{ url_for('index', category=current.category, unread=('1' if current.unread else None), q=current.q, clang='id') }}"
+       class="filter-lang {% if current.clang == 'id' %}active{% endif %}">ID</a>
+
+    <form method="get" class="filter-search">
+      {% if current.category %}<input type="hidden" name="category" value="{{ current.category }}">{% endif %}
+      {% if current.unread %}<input type="hidden" name="unread" value="1">{% endif %}
+      {% if current.clang %}<input type="hidden" name="clang" value="{{ current.clang }}">{% endif %}
+      <input type="search" name="q" placeholder="{{ t('search_placeholder') }}" value="{{ current.q }}">
+      <button type="submit">{{ t('search_go') }}</button>
+    </form>
+  </div>
+</nav>
+
+<main>
+  {% if articles %}
+
+    {% if hero %}
+    <section class="hero">
+      <article class="hero-main {% if hero.read %}read{% endif %}"
+               onclick="markAndGo({{ hero.id }}, '{{ hero.link }}')">
+        <div class="thumb">
+          <div class="thumb-fallback"
+               style="background:hsl({{ (hero.id * 47) % 360 }}, 42%, 42%)">
+            {{ translate_category(hero.category) }}
+          </div>
+          {% if hero.image %}
+            <img src="{{ hero.image }}" loading="lazy" alt="" onerror="this.remove()">
+          {% endif %}
+        </div>
+        <div class="card-cat">{{ translate_category(hero.category) }}</div>
+        <h1>{{ hero.title }}</h1>
+        {% if hero.summary %}<p>{{ hero.summary }}</p>{% endif %}
+        <div class="meta">
+          <span class="src">{{ hero.source }}</span>
+          <span class="dot">●</span>
+          <span>{{ format_date(hero.pub_ts) or hero.published }}</span>
+        </div>
+        <div class="tags">
+          {% for m in hero.matches %}<span class="tag match">{{ m }}</span>{% endfor %}
+          <a href="https://translate.google.com/translate?sl=auto&tl={{ lang }}&u={{ hero.link|urlencode }}"
+             target="_blank" rel="noopener" class="tag translate"
+             onclick="event.stopPropagation()" title="{{ t('translate_title') }}">
+            🌐 {{ t('translate') }}
+          </a>
+        </div>
+      </article>
+
+      <aside class="hero-side">
+        {% for a in side %}
+        <article class="side-card {% if a.read %}read{% endif %}"
+                 onclick="markAndGo({{ a.id }}, '{{ a.link }}')">
+          <div class="thumb">
+            <div class="thumb-fallback"
+                 style="background:hsl({{ (a.id * 47) % 360 }}, 42%, 42%)">
+              {{ translate_category(a.category) }}
+            </div>
+            {% if a.image %}
+              <img src="{{ a.image }}" loading="lazy" alt="" onerror="this.remove()">
+            {% endif %}
+          </div>
+          <div class="card-cat">{{ translate_category(a.category) }}</div>
+          <h3>{{ a.title }}</h3>
+          <div class="meta">
+            <span class="src">{{ a.source }}</span>
+            <span class="dot">●</span>
+            <span>{{ format_date(a.pub_ts) or a.published }}</span>
+          </div>
+        </article>
+        {% endfor %}
+      </aside>
+    </section>
+    {% endif %}
+
+    {% if grid %}
+    <div class="section-head">
+      <h2>{{ t('latest_news') }}</h2>
+      <span>{{ grid|length }} {{ t('stories') }}</span>
+    </div>
+    <section class="grid">
+      {% for a in grid %}
+      <article class="card {% if a.read %}read{% endif %}"
+               onclick="markAndGo({{ a.id }}, '{{ a.link }}')">
+        <div class="thumb">
+          <div class="thumb-fallback"
+               style="background:hsl({{ (a.id * 47) % 360 }}, 42%, 42%)">
+            {{ translate_category(a.category) }}
+          </div>
+          {% if a.image %}
+            <img src="{{ a.image }}" loading="lazy" alt="" onerror="this.remove()">
+          {% endif %}
+        </div>
+        <div class="card-cat">{{ translate_category(a.category) }}</div>
+        <h3>{{ a.title }}</h3>
+        {% if a.summary %}<p>{{ a.summary }}</p>{% endif %}
+        <div class="meta">
+          <span class="src">{{ a.source }}</span>
+          <span class="dot">●</span>
+          <span>{{ format_date(a.pub_ts) or a.published }}</span>
+        </div>
+        <div class="tags">
+          {% for m in a.matches %}<span class="tag match">{{ m }}</span>{% endfor %}
+          {% if a.region == 'Indonesia' %}<span class="tag id">🇮🇩 ID</span>{% endif %}
+          <a href="https://translate.google.com/translate?sl=auto&tl={{ lang }}&u={{ a.link|urlencode }}"
+             target="_blank" rel="noopener" class="tag translate"
+             onclick="event.stopPropagation()" title="{{ t('translate_title') }}">
+            🌐 {{ t('translate') }}
+          </a>
+        </div>
+      </article>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+  {% else %}
+    <div class="empty">
+      <div>{{ t('empty_msg') }}</div>
+      <form method="post" action="{{ url_for('refresh') }}">
+        <button class="btn" type="submit">{{ t('fetch_now') }}</button>
+      </form>
+    </div>
+  {% endif %}
+</main>
+
+<footer>
+  <span>{{ t('footer_left') }}</span>
+  <span>{{ stats.total }} {{ t('footer_total') }} · {{ stats.unread }} {{ t('footer_unread') }}</span>
+</footer>
+
+<script>
+async function markAndGo(id, url){
+  try{ await fetch('/mark_read/' + id, {method:'POST'}); }catch(e){}
+  window.open(url, '_blank', 'noopener');
+}
+</script>
+</body>
+</html> 
